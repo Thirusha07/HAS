@@ -1,0 +1,125 @@
+-- Q3: Student Academic Performance Report
+-- Uses tuples, pattern matching with guards, recursion
+
+import System.IO (isEOF)
+
+-- Type synonyms for readability
+type Student = (String, Int)             -- (Name, Mark)
+type ReportEntry = (String, Int, String) -- (Name, Mark, Category)
+
+-- Sample built-in data
+sampleStudents :: [Student]
+sampleStudents =
+  [("Alice", 35),
+   ("Bob", 55),
+   ("Charlie", 72),
+   ("Diana", 88),
+   ("Eve", 40)]
+
+-----------------------------------------------------
+-- Classification function using guards
+-----------------------------------------------------
+classify :: Student -> ReportEntry
+classify (name, mark)
+  | mark < 40  = (name, mark, "Fail")
+  | mark < 60  = (name, mark, "Pass")
+  | mark < 80  = (name, mark, "Merit")
+  | otherwise  = (name, mark, "Distinction")
+
+-----------------------------------------------------
+-- Recursively process list into report
+-----------------------------------------------------
+makeReport :: [Student] -> [ReportEntry]
+makeReport [] = []
+makeReport (s:xs) = classify s : makeReport xs
+
+-----------------------------------------------------
+-- Count passed students (mark >= 40), recursively
+-----------------------------------------------------
+countPassed :: [Student] -> Int
+countPassed [] = 0
+countPassed ((_, mark):xs)
+  | mark >= 40 = 1 + countPassed xs
+  | otherwise  = countPassed xs
+
+-----------------------------------------------------
+-- Main function
+-----------------------------------------------------
+main :: IO ()
+main = do
+  putStrLn "Student Academic Performance Report"
+  putStrLn "Do you want to enter student marks manually? (yes/no)"
+  eof <- isEOF
+  if eof
+    then do
+      putStrLn "No input detected, using sample data..."
+      displayReport sampleStudents
+    else do
+      choice <- getLine
+      if choice == "yes"
+        then do
+          putStrLn "Enter records in format Name:Mark (empty line to stop):"
+          students <- readStudents
+          displayReport students
+        else do
+          putStrLn "Using built-in sample data..."
+          displayReport sampleStudents
+
+-----------------------------------------------------
+-- Read user input into (Name, Mark) tuples
+-----------------------------------------------------
+readStudents :: IO [Student]
+readStudents = do
+  line <- getLine
+  if null line
+    then return []
+    else do
+      let parts = splitBy ':' line
+      let name = parts !! 0
+      let mark = read (parts !! 1) :: Int
+      rest <- readStudents
+      return ((name, mark) : rest)
+
+-- Custom splitter (since no libraries allowed)
+splitBy :: Char -> String -> [String]
+splitBy _ "" = [""]
+splitBy delim (c:cs)
+  | c == delim = "" : rest
+  | otherwise  = (c : head rest) : tail rest
+  where
+    rest = splitBy delim cs
+
+-----------------------------------------------------
+-- Display categorized report + pass count
+-----------------------------------------------------
+displayReport :: [Student] -> IO ()
+displayReport students = do
+  let report = makeReport students
+  let passed = countPassed students
+  putStrLn "------ Report ------"
+  printReport report
+  putStrLn ("Number of students passed (>=40): " ++ show passed)
+
+-- Recursively print the report list
+printReport :: [ReportEntry] -> IO ()
+printReport [] = return ()
+printReport ((name, mark, cat):xs) = do
+  putStrLn (name ++ " - " ++ show mark ++ " - " ++ cat)
+  printReport xs
+--Manual
+Student Academic Performance Report
+Do you want to enter student marks manually? (yes/no)
+yes
+Enter records in format Name:Mark (empty line to stop):
+Sam:20
+Lily:45
+Tom:67
+Anna:82
+
+<press Enter to stop>
+------ Report ------
+Sam - 20 - Fail
+Lily - 45 - Pass
+Tom - 67 - Merit
+Anna - 82 - Distinction
+Number of students passed (>=40): 3
