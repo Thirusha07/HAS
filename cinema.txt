@@ -1,0 +1,130 @@
+-- Q2: Cinema Ticket Sales Report
+-- Uses tuples, pattern matching, recursion
+
+import System.IO (isEOF)
+
+-- Type synonym for readability
+type Sale = (String, Int)  
+-- (Category, Quantity)
+
+-- Sample built-in data
+sampleSales :: [Sale]
+sampleSales =
+  [("Adult", 5),
+   ("Child", 3),
+   ("Senior", 2),
+   ("Adult", 4),
+   ("Child", 1)]
+
+-----------------------------------------------------
+-- Count tickets per category (recursion + pattern match)
+-----------------------------------------------------
+
+countAdult :: [Sale] -> Int
+countAdult [] = 0
+countAdult ((cat,qty):xs)
+  | cat == "Adult" = qty + countAdult xs
+  | otherwise      = countAdult xs
+
+countChild :: [Sale] -> Int
+countChild [] = 0
+countChild ((cat,qty):xs)
+  | cat == "Child" = qty + countChild xs
+  | otherwise      = countChild xs
+
+countSenior :: [Sale] -> Int
+countSenior [] = 0
+countSenior ((cat,qty):xs)
+  | cat == "Senior" = qty + countSenior xs
+  | otherwise       = countSenior xs
+
+-----------------------------------------------------
+-- Calculate revenue recursively
+-----------------------------------------------------
+
+calcRevenue :: [Sale] -> Int
+calcRevenue [] = 0
+calcRevenue ((cat,qty):xs)
+  | cat == "Adult"  = (12 * qty) + calcRevenue xs
+  | cat == "Child"  = (8  * qty) + calcRevenue xs
+  | cat == "Senior" = (10 * qty) + calcRevenue xs
+  | otherwise       = calcRevenue xs   -- ignore invalid
+
+-----------------------------------------------------
+-- Main function
+-----------------------------------------------------
+
+main :: IO ()
+main = do
+  putStrLn "Cinema Ticket Sales Report"
+  putStrLn "Do you want to enter sales manually? (yes/no)"
+  eof <- isEOF
+  if eof
+    then do
+      putStrLn "No input detected, using sample data..."
+      report sampleSales
+    else do
+      choice <- getLine
+      if choice == "yes"
+        then do
+          putStrLn "Enter sales in format Category:Quantity (empty line to stop):"
+          sales <- readSales
+          report sales
+        else do
+          putStrLn "Using built-in sample data..."
+          report sampleSales
+
+-----------------------------------------------------
+-- Read user input into (Category, Quantity) tuples
+-----------------------------------------------------
+readSales :: IO [Sale]
+readSales = do
+  line <- getLine
+  if null line
+    then return []
+    else do
+      let parts = splitBy ':' line
+      let cat = parts !! 0
+      let qty = read (parts !! 1) :: Int
+      rest <- readSales
+      return ((cat, qty) : rest)
+
+-- Custom splitter (since no libraries allowed)
+splitBy :: Char -> String -> [String]
+splitBy _ "" = [""]
+splitBy delim (c:cs)
+  | c == delim = "" : rest
+  | otherwise  = (c : head rest) : tail rest
+  where
+    rest = splitBy delim cs
+
+-----------------------------------------------------
+-- Report function
+-----------------------------------------------------
+report :: [Sale] -> IO ()
+report sales = do
+  let a = countAdult sales
+  let c = countChild sales
+  let s = countSenior sales
+  let rev = calcRevenue sales
+  putStrLn "------ Sales Report ------"
+  putStrLn ("Adult Tickets : " ++ show a)
+  putStrLn ("Child Tickets : " ++ show c)
+  putStrLn ("Senior Tickets: " ++ show s)
+  putStrLn ("Total Revenue : $" ++ show rev)
+--Manual user input
+Cinema Ticket Sales Report
+Do you want to enter sales manually? (yes/no)
+yes
+Enter sales in format Category:Quantity (empty line to stop):
+Adult:3
+Child:2
+Senior:1
+Adult:2
+
+<press Enter to stop>
+------ Sales Report ------
+Adult Tickets : 5
+Child Tickets : 2
+Senior Tickets: 1
+Total Revenue : $86
